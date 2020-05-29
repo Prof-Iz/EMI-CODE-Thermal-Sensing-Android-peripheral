@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "C:\\Program Files\\WindowsApps\\ArduinoLLC.ArduinoIDE_1.8.33.0_x86__mdqgnx93n4wtt\\tools\\**",
+                "C:\\Program Files\\WindowsApps\\ArduinoLLC.ArduinoIDE_1.8.33.0_x86__mdqgnx93n4wtt\\hardware\\arduino\\avr\\**",
+                "C:\\Program Files\\WindowsApps\\ArduinoLLC.ArduinoIDE_1.8.33.0_x86__mdqgnx93n4wtt\\**"
+            ],
+            "forcedInclude": [
+                "C:\\Program Files\\WindowsApps\\ArduinoLLC.ArduinoIDE_1.8.33.0_x86__mdqgnx93n4wtt\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h",
+                "C:\\Program Files\\WindowsApps\\ArduinoLLC.ArduinoIDE_1.8.33.0_x86__mdqgnx93n4wtt\\**"
+                
+            ],
+            "intelliSenseMode": "msvc-x64"
+        }
+    ],
+    "version": 4
+}
