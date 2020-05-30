@@ -32,7 +32,7 @@ void loop(){
     getDistanceCm();
     delay(50);
     getTemperatureC();
-    delay(50);
+    delay(50); // further test if delays are sufficient or not
     Serial.println(compile);
     delay(500); //give nano some rest
 
@@ -62,8 +62,16 @@ void getDistanceCm(){
 
 void getTemperatureC(){
     float temp = mlx.readObjectTempC();
-    // return str(temp[0:3]); check if this syntax works
-    for (int i=0;i<4;i++){
-        compile[i] = str(temp[i]);
+
+    if ((temp < 10.0) || (temp > 50.0)){
+        compile[1] = 'X'; // if temperature outside validated range make first char of compile array X to tell phone result has errors
+    } else
+    {
+        String placeholder = str(temp); //convert the stored temperature reading to string and store in a placeholder
+        for (int i=0;i<4;i++){
+        compile[i] = placeholder[i]; // replace first 4 elements of compiled answer with tmeperature reading
+        }
     }
+    
+    
 }
