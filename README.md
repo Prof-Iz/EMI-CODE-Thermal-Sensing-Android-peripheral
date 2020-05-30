@@ -11,4 +11,4 @@ Repository contains 2 folders
 The project in question requires the Arduino to take in data from 2 sensor modules - a thermal sensing module and an ultrasound distance measuring module. Code would collect the data and then process it before passing data through connected serial to an accompanyng Android device <br>
 
 ## Android Code
-Description to be updated .. 
+The current folder contains a flutter project generated using andorid studio and so far only contains the boiler-plate template / no additions as of yet.
