@@ -1,5 +1,5 @@
 #include <Wire.h>
-#include <Adafruit_MLX90614.h>
+#include <Adafruit_MLX90614.h> //download header file
  
 
 
