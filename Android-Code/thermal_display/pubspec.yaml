@@ -1,5 +1,5 @@
-name: thermaldisplay
-description: Application accompanying thermal sensing device
+name: learning
+description: A new Flutter application.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
@@ -32,16 +32,23 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  cupertino_icons: ^0.1.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter.
 flutter:
+  fonts:
+    - family: Roboto
+      fonts:
+       - asset: fonts/Roboto-Black.ttf
+       - asset: fonts/Roboto-Thin.ttf
+    - family: Arvo
+      fonts:
+        - asset: fonts/Arvo-Bold.tff
 
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
