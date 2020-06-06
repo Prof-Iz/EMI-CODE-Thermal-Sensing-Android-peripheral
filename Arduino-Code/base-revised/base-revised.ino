@@ -15,7 +15,7 @@ AP3216_WE prox = AP3216_WE(); // proximity detection object
 
 void setup(){
   Serial.begin(9600);
-  
+
   mlx.begin();
   prox.init();
 }
@@ -25,7 +25,6 @@ void loop(){
         if (Serial.read() == 'G'){ //prompt to iniate functions
             Serial.flush();
             getProximtyArduino();
-            getTemperatureC();
             delay(300); // coordinate with phone app to send 'G' , Delay 500
             Serial.flush();
         }
@@ -39,11 +38,11 @@ void getProximtyArduino(){
 
     if ((proximity > 1000) || (proximity < 20)) //calibrate values after testing
     {
-        Serial.print("B");//if out of optimal range Set to A
+        Serial.println("X"); //if out of optimal range return X
     }
     else
     {
-        Serial.print("B"); // if optimal range set to A
+        getTemperatureC(); // if proximity in optimal range continue to get temperature
     }
     
 
@@ -53,10 +52,10 @@ void getTemperatureC(){
     float temp = mlx.readObjectTempC();
 
     if ((temp < 10.0) || (temp > 50.0)){
-       Serial.println("X") ; // if temperature outside validated range make first char of compile array X to tell phone result has errors
+       Serial.println("X") ; // if temperature outside validated range return X
     } else
     {
-        Serial.println(temp,2); // return two decimal places
+        Serial.println(temp,2); // if temperature inside validated range return temperature to two dp
     }
     
     
