@@ -1,39 +1,51 @@
 #include <Wire.h>
 #include <Adafruit_MLX90614.h> //download header file
-#include <AP3216_WE.h> //download header file
-
- 
-
+#include <AP3216_WE.h>         //download header file
 
 // Declaration of functions
-void getProximtyArduino();
+void getProximityArduino();
 void getTemperatureC();
 
 Adafruit_MLX90614 mlx = Adafruit_MLX90614(); //Temperature detection object
 
 AP3216_WE prox = AP3216_WE(); // proximity detection object
+int proximity_delay = 600;    //600ms delay for proximity sensor < to be tested
 
-void setup(){
-  Serial.begin(9600);
+void setup()
+{
+    Serial.begin(9600);
+    Wire.begin();
+    mlx.begin();
 
-  mlx.begin();
-  prox.init();
+    // Proximity Sensor Calibration
+    prox.init();
+    prox.setMode(ALS_PS_ONCE);
+    prox.setLuxRange(RANGE_20661);
+    prox.setPSGain(2);
+    delay(proximity_delay); //initial Sensor Calibration
+
+    // --------------------------------------------
 }
 
-void loop(){
-    if (Serial.available()){
-        if (Serial.read() == 'G'){ //prompt to iniate functions
+void loop()
+{
+    if (Serial.available())
+    {
+        do
+        { //prompt to iniate functions
             Serial.flush();
-            getProximtyArduino();
+            getProximityArduino();
             delay(300); // coordinate with phone app to send 'G' , Delay 500
-            Serial.flush();
-        }
+            // Serial.flush(); commented out for debugging
+        } while (Serial.read() == 'G');
     }
-
 }
 
-void getProximtyArduino(){
-    int proximity = prox.getProximity();
+void getProximityArduino()
+{
+    prox.setMode(ALS_PS_ONCE); //initiating measurement
+    delay(proximity_delay);    //check for optimal delay time
+    unsigned int proximity = prox.getProximity();
     Serial.println(proximity); //debugging
 
     if ((proximity > 1000) || (proximity < 20)) //calibrate values after testing
@@ -44,19 +56,18 @@ void getProximtyArduino(){
     {
         getTemperatureC(); // if proximity in optimal range continue to get temperature
     }
-    
-
 }
 
-void getTemperatureC(){
+void getTemperatureC()
+{
     float temp = mlx.readObjectTempC();
 
-    if ((temp < 10.0) || (temp > 50.0)){
-       Serial.println("X") ; // if temperature outside validated range return X
-    } else
+    if ((temp < 10.0) || (temp > 50.0))
     {
-        Serial.println(temp,2); // if temperature inside validated range return temperature to two dp
+        Serial.println("X"); // if temperature outside validated range return X
     }
-    
-    
+    else
+    {
+        Serial.println(temp, 2); // if temperature inside validated range return temperature to two dp
+    }
 }
