@@ -29,16 +29,15 @@ void setup()
 
 void loop()
 {
-    if (Serial.available())
-    {
-        do
-        { //prompt to iniate functions
+//    if (Serial.available())
+//    {
+              
             Serial.flush();
             getProximityArduino();
             delay(300); // coordinate with phone app to send 'G' , Delay 500
             // Serial.flush(); commented out for debugging
-        } while (Serial.read() == 'G');
-    }
+        
+//    }
 }
 
 void getProximityArduino()
@@ -46,9 +45,9 @@ void getProximityArduino()
     prox.setMode(ALS_PS_ONCE); //initiating measurement
     delay(proximity_delay);    //check for optimal delay time
     unsigned int proximity = prox.getProximity();
-    Serial.println(proximity); //debugging
+//    Serial.println(proximity); //debugging for calibration
 
-    if ((proximity > 1000) || (proximity < 20)) //calibrate values after testing
+    if ((proximity > 1000) || (proximity < 300)) //calibrate values after testing
     {
         Serial.println("X"); //if out of optimal range return X
     }
@@ -68,6 +67,6 @@ void getTemperatureC()
     }
     else
     {
-        Serial.println(temp, 2); // if temperature inside validated range return temperature to two dp
+        Serial.println(temp + 4, 1); // if temperature inside validated range return temperature to two dp
     }
 }
