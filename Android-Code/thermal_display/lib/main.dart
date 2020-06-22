@@ -1,10 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'dart:typed_data';
 import 'dart:async';
 import 'package:usb_serial/usb_serial.dart';
 import 'package:usb_serial/transaction.dart';
-import 'package:string_validator/string_validator.dart';
 
 void main() {
   runApp(HomeScreen());
@@ -19,13 +19,15 @@ class _HomeScreenState extends State<HomeScreen> {
   UsbPort _port;
   String _status = "Please Plug in the Device";
   List<Widget> _ports = [];
-  String _serialData = ";)";
+  String serialData;
   StreamSubscription<String> _subscription;
   Transaction<String> _transaction;
   int _deviceId;
+  double intermediate = -1; //initial value that wont trigger function
+  List<double> average;
 
   Future<bool> _connectTo(device) async {
-    _serialData = "click";
+    serialData = "click";
 
     if (_subscription != null) {
       _subscription.cancel();
@@ -69,23 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _subscription = _transaction.stream.listen((String line) {
       setState(() {
-        _serialData = line;
-
-        if (isNumeric(_serialData) == false) {
-          //avoid crash when using error messages
-          null;
-        } else if (double.parse(_serialData) > 37.6) {
-          this.callHospital = true;
-          this.alertColor = Colors.redAccent;
-        } else {
-          this.callHospital = false;
-          if ((double.parse(_serialData) < 37.6) &&
-              (double.parse(_serialData) > 37.0)) {
-            this.alertColor = Colors.orangeAccent;
-          } else {
-            this.alertColor = Colors.limeAccent;
-          }
-        }
+        serialData = line;
+        intermediate = double.parse(serialData);
       });
     });
 
@@ -98,15 +85,47 @@ class _HomeScreenState extends State<HomeScreen> {
   void _getPorts() async {
     _ports = [];
     List<UsbDevice> devices = await UsbSerial.listDevices();
-    devices.length > 0
-        ? _connectTo(devices[0])
-        : _status =
-            "Disconnected"; // connect to whatever is plugged into phone first
+    if (devices.length > 0) {
+      _connectTo(devices[0]); //connect to whatever is plugged into phone first
+    } else {
+      // if connection lost update serial data
+      _status = "Disconnected";
+      serialData = "owo'";
+      callHospital = false;
+      alertColor = Colors.amberAccent;
+//      _showDisconnectDialog();
+    }
 
     setState(() {
       print(_ports);
     });
   }
+
+//  Future<void> _showDisconnectDialog() async {
+//    //alert dialog for when the device disconnects
+//    return showDialog<void>(
+//        context: context,
+//        barrierDismissible: true, // user must tap button!
+//        builder: (BuildContext context) {
+//          return AlertDialog(
+//            backgroundColor: Colors.black,
+//            title: Text(
+//              'No Connected Device',
+//              style: TextStyle(color: Colors.white, fontSize: 20),
+//            ),
+//            content: SingleChildScrollView(
+//              child: ListBody(
+//                children: <Widget>[
+//                  Text(
+//                    'If this is unintentional, make sure your cable is working properly. Otherwise, visit our certified Quick Fix shops to get it fixed',
+//                    style: TextStyle(color: Colors.white, fontSize: 15),
+//                  ),
+//                ],
+//              ),
+//            ),
+//          );
+//        });
+//  }
 
   @override
   void initState() {
@@ -117,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     _getPorts();
+    serialData = "click"; //show instruction to click on init
   }
 
   @override
@@ -129,41 +149,59 @@ class _HomeScreenState extends State<HomeScreen> {
   bool callHospital = false;
 
   requestTemperature() {
-    _port.write('b\'G\''.codeUnits); //why cant we send this wtf
+    _port.write(Uint8List.fromList("G\r\n".codeUnits)); //why cant we send this wtf
   }
 
-//  void showTemperature() async {
-////    requestTemperature();
-//
-//    setState(() {
-//
-//      if (isNumeric(_serialData) == false) {
-//        //avoid crash when using error messages
-//        null;
-//      } else if (double.parse(_serialData) > 37.6) {
-//        callHospital = true;
-//        alertColor = Colors.redAccent;
-//      } else {
+  void updateColorsAndOpacity() {
+    while (average.length < 4) {
+      callHospital = false;
+      if (intermediate == 0) {
 //        callHospital = false;
-//        if ((double.parse(_serialData) < 37.6) &&
-//            (double.parse(_serialData) > 37.0)) {
-//          alertColor = Colors.orangeAccent;
-//        } else {
-//          alertColor = Colors.limeAccent;
-//        }
-//      }
-//    });
-//
-//  }
+        alertColor = Colors.limeAccent;
+        serialData = 'X';
+      } else if (intermediate > 37.6) {
+//        callHospital = true;
+        alertColor = Colors.redAccent;
+      } else {
+//        callHospital = false;
+        if ((intermediate < 37.6) & (intermediate > 37.0)) {
+          alertColor = Colors.orangeAccent;
+        } else {
+          alertColor = Colors.limeAccent;
+        }
+      }
+      intermediate >= 35.5 ? average.add(intermediate):null; // collects three readings not erroneous
+    }
+    double sum = 0;
+    average.forEach((num e) {sum+=e;});
+    double finalValue = sum/3; //finds average of the collected measurements
+    if (finalValue == 0) { // repeats checking procedure with the average answer
+      callHospital = false; //only shows hospital in average case
+      alertColor = Colors.limeAccent;
+      serialData = 'X';
+    } else if (finalValue > 37.6) {
+      serialData = finalValue.toString();
+      callHospital = true;
+      alertColor = Colors.redAccent;
+    } else {
+      callHospital = false;
+      serialData = finalValue.toString()+"!";
+      if ((finalValue < 37.6) & (finalValue > 37.0)) {
+        alertColor = Colors.orangeAccent;
+      } else {
+        alertColor = Colors.limeAccent;
+      }
+    }
+
+
+  }
 
   @override
   Widget build(BuildContext context) {
+    updateColorsAndOpacity();
     return MaterialApp(
       title: "QE Thermal",
-      debugShowCheckedModeBanner: false,
-      home: AnimatedContainer(
-        duration: Duration(milliseconds: 1500),
-        child: Scaffold(
+      home: Scaffold(
           backgroundColor: alertColor,
           floatingActionButton: Padding(
             padding: const EdgeInsets.all(8.0),
@@ -226,9 +264,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: FlatButton(
                         splashColor: Colors.white10,
-                        onPressed: null,
+                        onPressed: requestTemperature,
                         child: Text(
-                          _serialData,
+                          serialData,
                           style: TextStyle(
                             fontSize: 150.0,
                           ),
@@ -244,8 +282,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-        ),
-      ),
+          bottomNavigationBar: BottomAppBar(
+            color: Colors.transparent,
+            elevation: 0.0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "© QE Sdn Bhd 2020",
+                      style: TextStyle(fontSize: 15, color: Colors.black45),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              ],
+            ),
+          )),
     );
   }
 }

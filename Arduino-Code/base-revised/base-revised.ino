@@ -49,7 +49,7 @@ void getProximityArduino()
 
     if ((proximity > 1000) || (proximity < 300)) //calibrate values after testing
     {
-        Serial.println("X"); //if out of optimal range return X
+        Serial.println("0"); //if out of optimal range return 0
     }
     else
     {
@@ -63,7 +63,7 @@ void getTemperatureC()
 
     if ((temp < 10.0) || (temp > 50.0))
     {
-        Serial.println("X"); // if temperature outside validated range return X
+        Serial.println("0"); // if temperature outside validated range return 0
     }
     else
     {
