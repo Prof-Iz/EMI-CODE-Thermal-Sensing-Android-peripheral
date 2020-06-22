@@ -1,10 +1,16 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'dart:typed_data';
 import 'dart:async';
 import 'package:usb_serial/usb_serial.dart';
 import 'package:usb_serial/transaction.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:audioplayers/audio_cache.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 void main() {
   runApp(HomeScreen());
@@ -24,7 +30,38 @@ class _HomeScreenState extends State<HomeScreen> {
   Transaction<String> _transaction;
   int _deviceId;
   double intermediate = -1; //initial value that wont trigger function
-  List<double> average;
+  List<double> average = [];
+  AudioPlayer feverDetected = AudioPlayer();
+  AudioCache fever2 = AudioCache();
+  String feverSoundURI;
+  String noFeverSoundURI;
+
+  playSoundFever() {
+    feverDetected.play(feverSoundURI, isLocal: true);
+  }
+
+  playSoundNormal() {
+    feverDetected.play(noFeverSoundURI, isLocal: true);
+  }
+
+  void _loadSounds() async {
+    //prepare warning and okay sounds
+    final ByteData dangerFeverSound =
+        await rootBundle.load('assets/sounds/fever_ting.mp3');
+    final ByteData okayNoFeverSound =
+        await rootBundle.load('assets/sounds/mans_not_hot.mp3');
+
+    Directory tempDir = await getTemporaryDirectory();
+    File tempFile_1 = File('${tempDir.path}/fever_ting.mp3');
+    await tempFile_1.writeAsBytes(dangerFeverSound.buffer.asUint8List(),
+        flush: true);
+    File tempFile_2 = File('${tempDir.path}/mans_not_hot.mp3');
+    await tempFile_2.writeAsBytes(okayNoFeverSound.buffer.asUint8List(),
+        flush: true);
+
+    feverSoundURI = tempFile_1.uri.toString();
+    noFeverSoundURI = tempFile_2.uri.toString();
+  }
 
   Future<bool> _connectTo(device) async {
     serialData = "click";
@@ -89,11 +126,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _connectTo(devices[0]); //connect to whatever is plugged into phone first
     } else {
       // if connection lost update serial data
-      _status = "Disconnected";
-      serialData = "owo'";
-      callHospital = false;
-      alertColor = Colors.amberAccent;
-//      _showDisconnectDialog();
+      setState(() {
+        intermediate =-1;
+        _status = "Disconnected";
+      });
     }
 
     setState(() {
@@ -101,42 +137,22 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-//  Future<void> _showDisconnectDialog() async {
-//    //alert dialog for when the device disconnects
-//    return showDialog<void>(
-//        context: context,
-//        barrierDismissible: true, // user must tap button!
-//        builder: (BuildContext context) {
-//          return AlertDialog(
-//            backgroundColor: Colors.black,
-//            title: Text(
-//              'No Connected Device',
-//              style: TextStyle(color: Colors.white, fontSize: 20),
-//            ),
-//            content: SingleChildScrollView(
-//              child: ListBody(
-//                children: <Widget>[
-//                  Text(
-//                    'If this is unintentional, make sure your cable is working properly. Otherwise, visit our certified Quick Fix shops to get it fixed',
-//                    style: TextStyle(color: Colors.white, fontSize: 15),
-//                  ),
-//                ],
-//              ),
-//            ),
-//          );
-//        });
-//  }
-
   @override
   void initState() {
     super.initState();
+
+    _loadSounds();
 
     UsbSerial.usbEventStream.listen((UsbEvent event) {
       _getPorts();
     });
 
     _getPorts();
-    serialData = "click"; //show instruction to click on init
+    setState(() {
+      //remove these lines if causing errors
+      serialData = "click"; //show instruction to click on init
+      _status = "Please Plug in the Device"; //initial reading of serial
+    });
   }
 
   @override
@@ -149,51 +165,59 @@ class _HomeScreenState extends State<HomeScreen> {
   bool callHospital = false;
 
   requestTemperature() {
-    _port.write(Uint8List.fromList("G\r\n".codeUnits)); //why cant we send this wtf
+    _port.write(Uint8List.fromList("G\r\n".codeUnits));
   }
 
   void updateColorsAndOpacity() {
-    while (average.length < 4) {
+    if (intermediate == -1){ //avoid initial -1 display
+      serialData = "click";
+      callHospital = false;
+      alertColor = Colors.blueGrey;
+    }
+    else if (average.length < 3) { // switch reading to 3 to see if state build issue persists
       callHospital = false;
       if (intermediate == 0) {
-//        callHospital = false;
         alertColor = Colors.limeAccent;
         serialData = 'X';
       } else if (intermediate > 37.6) {
-//        callHospital = true;
         alertColor = Colors.redAccent;
       } else {
-//        callHospital = false;
         if ((intermediate < 37.6) & (intermediate > 37.0)) {
           alertColor = Colors.orangeAccent;
         } else {
           alertColor = Colors.limeAccent;
         }
       }
-      intermediate >= 35.5 ? average.add(intermediate):null; // collects three readings not erroneous
-    }
-    double sum = 0;
-    average.forEach((num e) {sum+=e;});
-    double finalValue = sum/3; //finds average of the collected measurements
-    if (finalValue == 0) { // repeats checking procedure with the average answer
-      callHospital = false; //only shows hospital in average case
-      alertColor = Colors.limeAccent;
-      serialData = 'X';
-    } else if (finalValue > 37.6) {
-      serialData = finalValue.toString();
-      callHospital = true;
-      alertColor = Colors.redAccent;
+      intermediate > 0
+          ? average.add(intermediate)
+          : average =
+              []; // collects three readings not erroneous and resets if too far
     } else {
-      callHospital = false;
-      serialData = finalValue.toString()+"!";
-      if ((finalValue < 37.6) & (finalValue > 37.0)) {
-        alertColor = Colors.orangeAccent;
+      double sum = 0;
+      average.forEach((num e) {
+        sum += e;
+      });
+      double finalValue =
+          sum / average.length; //finds average of the collected measurements
+      serialData = finalValue.toString().substring(0, 4);
+      if (finalValue > 37.6) {
+        //repeats checking procedure with averaged value
+        callHospital = true;
+        alertColor = Colors.redAccent;
+        playSoundFever();
       } else {
-        alertColor = Colors.limeAccent;
+        callHospital = false;
+        if ((finalValue < 37.6) & (finalValue > 37.0)) {
+          alertColor = Colors.orangeAccent;
+        } else {
+          alertColor = Colors.limeAccent;
+          playSoundNormal();
+        }
       }
+
+      average = []; //reset average
+      sum = 0; //reset sum value
     }
-
-
   }
 
   @override

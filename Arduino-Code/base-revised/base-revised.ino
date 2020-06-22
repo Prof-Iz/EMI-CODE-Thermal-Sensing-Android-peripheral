@@ -11,6 +11,8 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614(); //Temperature detection object
 AP3216_WE prox = AP3216_WE(); // proximity detection object
 int proximity_delay = 600;    //600ms delay for proximity sensor < to be tested
 
+int count = 0; // counter to track 4 consecutive correct measurements
+
 void setup()
 {
     Serial.begin(9600);
@@ -29,15 +31,18 @@ void setup()
 
 void loop()
 {
-//    if (Serial.available())
-//    {
-              
+    char command = Serial.read();
+    if (command == 'G')
+    {
+            while (count < 4){
             Serial.flush();
             getProximityArduino();
             delay(300); // coordinate with phone app to send 'G' , Delay 500
             // Serial.flush(); commented out for debugging
+            }
         
-//    }
+    }
+    count = 0; //reset counter value for next time
 }
 
 void getProximityArduino()
@@ -50,6 +55,7 @@ void getProximityArduino()
     if ((proximity > 1000) || (proximity < 300)) //calibrate values after testing
     {
         Serial.println("0"); //if out of optimal range return 0
+        count = 0; // if erroneous value set to 0;
     }
     else
     {
@@ -64,9 +70,11 @@ void getTemperatureC()
     if ((temp < 10.0) || (temp > 50.0))
     {
         Serial.println("0"); // if temperature outside validated range return 0
+        count = 0; // if erroneous value set to 0
     }
     else
     {
-        Serial.println(temp + 4, 1); // if temperature inside validated range return temperature to two dp
+        Serial.println(temp + 4, 1); // if temperature inside validated range return temperature to one dp
+        count ++; // increment counter for each successful measurement taken
     }
 }
