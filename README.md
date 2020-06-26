@@ -1,5 +1,5 @@
-# DISCLAIMER
-This is a work in progress!! Some code may have errors and is purely for my own personal tracking. Eventually if the code works and you are able to use it, by all means please do ;)<br>
+# DISCLAIMER | Referencing
+This is a work in progress!! Some code may have errors and is purely for my own personal tracking. Eventually if the code works and you are able to use it, by all means please do ;) but remember to **reference my code** to *avoid **plagiarism** issues*<br>
 ***Ibrahim Izdhan**, 1001852671, UCSI University, Electrical and Electronics Engineering*<br><br>
 # EMI CODE Thermal Sensing Android peripheral
  Code repository for EMI Project May Sem Y2 Engineering<br>
