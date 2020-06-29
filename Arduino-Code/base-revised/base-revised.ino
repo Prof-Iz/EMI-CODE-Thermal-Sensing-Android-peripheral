@@ -43,6 +43,7 @@ void loop()
         
     }
     count = 0; //reset counter value for next time
+    Serial.flush(); // check if repeated requests to get temperature are not chained
 }
 
 void getProximityArduino()
