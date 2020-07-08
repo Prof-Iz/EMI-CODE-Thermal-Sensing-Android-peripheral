@@ -17,10 +17,10 @@ The project in question requires the Arduino to take in data from 2 sensor modul
 
 #### AP3216 Proximity Sensor (CJMCU - 3216)
 The proximity sensor used in the project is a CJMCU IR and Light based proximity sensor. The sensor was programmed using the library by **Wollewad**
-https://github.com/wollewald/AP3216_WE and tweaked for single pulse detection mode of proximity following the instructions on his repo. The values received for proximity are compared in a conditional that was calibrated for my specific sensor and if it was within threshold values (**distance of roughly 2 - 4 cm**) from forehead the reading from the thermal sensor is triggered - else the Arduino returns **X** in the serial indicating that the forehead is not at an optimal distance. <br>
+https://github.com/wollewald/AP3216_WE and tweaked for single pulse detection mode of proximity following the instructions on his repo. The values received for proximity are compared in a conditional that was calibrated for my specific sensor and if it was within threshold values (**distance of roughly 2 - 4 cm**) from forehead the reading from the thermal sensor is triggered - else the Arduino returns **0** in the serial indicating that the forehead is not at an optimal distance. <br>
 
 #### MLX90614 Thermal Sensor (GY90614)
-Once the thermal sensor is triggered, the **getObjectTemperatureC** method is invoked for the mlx object and it returns the temperature of the object. if it is between a validated range the Arduino prints the temperature to 1 dp to the Serial - else X is returned to indicate erroneous range for a human.
+Once the thermal sensor is triggered, the **getObjectTemperatureC** method is invoked for the mlx object and it returns the temperature of the object. if it is between a validated range the Arduino prints the temperature to 1 dp to the Serial - else 0 is returned to indicate erroneous range for a human.
 The code uses the **Adafruit Library for the Module** https://github.com/adafruit/Adafruit-MLX90614-Library to initialise the object and invoke the methods.
 
 ## Android Code
