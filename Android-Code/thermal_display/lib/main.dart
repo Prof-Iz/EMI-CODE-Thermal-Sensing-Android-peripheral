@@ -1,67 +1,27 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
-import 'package:maps_launcher/maps_launcher.dart';
-import 'dart:typed_data';
-import 'dart:async';
 import 'package:usb_serial/usb_serial.dart';
 import 'package:usb_serial/transaction.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:audioplayers/audio_cache.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
+import 'dart:typed_data';
+import 'dart:async';
 
-void main() {
-  runApp(HomeScreen());
-}
+void main() => runApp(MaterialApp(
+  home: HomeScreen(),
+));
 
 class HomeScreen extends StatefulWidget {
+  // This widget is the root of your application.
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   UsbPort _port;
-  String _status = "Please Plug in the Device";
+  String status = "Connect your device :)";
+  String serialData = "                    ";
   List<Widget> _ports = [];
-  String serialData;
   StreamSubscription<String> _subscription;
   Transaction<String> _transaction;
   int _deviceId;
-  double intermediate = -1; //initial value that wont trigger function
-  List<double> average = [];
-  AudioPlayer feverDetected = AudioPlayer();
-  AudioCache fever2 = AudioCache();
-  String feverSoundURI;
-  String noFeverSoundURI;
-
-  playSoundFever() {
-    feverDetected.play(feverSoundURI, isLocal: true);
-  }
-
-  playSoundNormal() {
-    feverDetected.play(noFeverSoundURI, isLocal: true);
-  }
-
-  void _loadSounds() async {
-    //prepare warning and okay sounds
-    final ByteData dangerFeverSound =
-        await rootBundle.load('assets/sounds/fever_ting.mp3');
-    final ByteData okayNoFeverSound =
-        await rootBundle.load('assets/sounds/mans_not_hot.mp3');
-
-    Directory tempDir = await getTemporaryDirectory();
-    File tempFile_1 = File('${tempDir.path}/fever_ting.mp3');
-    await tempFile_1.writeAsBytes(dangerFeverSound.buffer.asUint8List(),
-        flush: true);
-    File tempFile_2 = File('${tempDir.path}/mans_not_hot.mp3');
-    await tempFile_2.writeAsBytes(okayNoFeverSound.buffer.asUint8List(),
-        flush: true);
-
-    feverSoundURI = tempFile_1.uri.toString();
-    noFeverSoundURI = tempFile_2.uri.toString();
-  }
 
   Future<bool> _connectTo(device) async {
     serialData = "click";
@@ -76,15 +36,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _transaction = null;
     }
 
-//    if (_port != null) {
-//      _port.close();
-//      _port = null;
-//    }
+    if (_port != null) {
+      _port.close();
+      _port = null;
+    }
 
     if (device == null) {
       _deviceId = null;
       setState(() {
-        _status = "Disconnected";
+        status = "Disconnected";
       });
       return true;
     }
@@ -92,16 +52,16 @@ class _HomeScreenState extends State<HomeScreen> {
     _port = await device.create();
     if (!await _port.open()) {
       setState(() {
-        _status = "PORT Problem";
+        status = "Port has problem";
       });
       return false;
     }
 
-    _deviceId = device.deviceId;
+    _deviceId = device.DeviceId;
     await _port.setDTR(true);
     await _port.setRTS(true);
-    await _port.setPortParameters(9600, UsbPort.DATABITS_8, UsbPort.STOPBITS_1,
-        UsbPort.PARITY_NONE); //settings for Arduino Nano as per GitHub Repo
+    await _port.setPortParameters(
+        9600, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
 
     _transaction = Transaction.stringTerminated(
         _port.inputStream, Uint8List.fromList([13, 10]));
@@ -109,12 +69,11 @@ class _HomeScreenState extends State<HomeScreen> {
     _subscription = _transaction.stream.listen((String line) {
       setState(() {
         serialData = line;
-        intermediate = double.parse(serialData);
       });
     });
 
     setState(() {
-      _status = "Connected";
+      status = "Connected";
     });
     return true;
   }
@@ -122,15 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void _getPorts() async {
     _ports = [];
     List<UsbDevice> devices = await UsbSerial.listDevices();
-    if (devices.length > 0) {
-      _connectTo(devices[0]); //connect to whatever is plugged into phone first
-    } else {
-      // if connection lost update serial data
-      setState(() {
-        intermediate =-1;
-        _status = "Disconnected";
-      });
-    }
+    devices.length > 0
+        ? _connectTo(devices[0]) //connect to whatever is plugged into phone first
+        : status = "Disconnected";
 
     setState(() {
       print(_ports);
@@ -141,18 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    _loadSounds();
-
     UsbSerial.usbEventStream.listen((UsbEvent event) {
       _getPorts();
     });
-
     _getPorts();
-    setState(() {
-      //remove these lines if causing errors
-      serialData = "click"; //show instruction to click on init
-      _status = "Please Plug in the Device"; //initial reading of serial
-    });
+
   }
 
   @override
@@ -161,170 +107,67 @@ class _HomeScreenState extends State<HomeScreen> {
     _connectTo(null);
   }
 
-  Color alertColor = Colors.limeAccent;
-  bool callHospital = false;
-
-  requestTemperature() {
-    _port.write(Uint8List.fromList("G\r\n".codeUnits));
-  }
-
-  void updateColorsAndOpacity() {
-    if (intermediate == -1){ //avoid initial -1 display
-      serialData = "click";
-      callHospital = false;
-      alertColor = Colors.blueGrey;
-    }
-    else if (average.length < 3) { // switch reading to 3 to see if state build issue persists
-      callHospital = false;
-      if (intermediate == 0) {
-        alertColor = Colors.limeAccent;
-        serialData = 'X';
-      } else if (intermediate > 37.6) {
-        alertColor = Colors.redAccent;
-      } else {
-        if ((intermediate < 37.6) & (intermediate > 37.0)) {
-          alertColor = Colors.orangeAccent;
-        } else {
-          alertColor = Colors.limeAccent;
-        }
-      }
-      intermediate > 0
-          ? average.add(intermediate)
-          : average =
-              []; // collects three readings not erroneous and resets if too far
-    } else {
-      double sum = 0;
-      average.forEach((num e) {
-        sum += e;
-      });
-      double finalValue =
-          sum / average.length; //finds average of the collected measurements
-      serialData = finalValue.toString().substring(0, 4);
-      if (finalValue > 37.6) {
-        //repeats checking procedure with averaged value
-        callHospital = true;
-        alertColor = Colors.redAccent;
-        playSoundFever();
-      } else {
-        callHospital = false;
-        if ((finalValue < 37.6) & (finalValue > 37.0)) {
-          alertColor = Colors.orangeAccent;
-        } else {
-          alertColor = Colors.limeAccent;
-          playSoundNormal();
-        }
-      }
-
-      average = []; //reset average
-      sum = 0; //reset sum value
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    updateColorsAndOpacity();
-    return MaterialApp(
-      title: "QE Thermal",
-      home: Scaffold(
-          backgroundColor: alertColor,
-          floatingActionButton: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Visibility(
-                  visible: callHospital,
-                  child: FloatingActionButton(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.redAccent,
-                    onPressed: () =>
-                        MapsLauncher.launchQuery("hospitals near me"),
-                    child: Icon(
-                      Icons.local_hospital,
-                    ),
-                  ),
-                ),
-              ],
+    return Scaffold (
+      backgroundColor: Colors.cyan,
+      appBar: AppBar(
+        title: Text('Temperature Sensor'),
+        centerTitle: true,
+        backgroundColor: Colors.grey[400],
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            "$status",
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 16.0,
             ),
           ),
-          body: Padding(
-            padding: EdgeInsets.symmetric(vertical: 20.0, horizontal: 5.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Spacer(
-                  flex: 1,
-                ),
-                Row(
-                  //Serial Status
-                  children: [
-                    Expanded(
-                      child: FractionallySizedBox(
-                        widthFactor: 0.5,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20.0),
-                            color: Colors.black,
-                          ),
-                          child: Text(
-                            _status,
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              color: Colors.white,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-                Spacer(
-                  flex: 1,
-                ),
-                Row(
-                  //Temperature Display Row
-                  children: [
-                    Expanded(
-                      child: FlatButton(
-                        splashColor: Colors.white10,
-                        onPressed: requestTemperature,
-                        child: Text(
-                          serialData,
-                          style: TextStyle(
-                            fontSize: 150.0,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-                Spacer(
-                  flex: 2,
-                )
-              ],
+          Divider(
+              height: 50.0),
+          Text(
+            "Distance: ${serialData.substring(0,5)} m\n",
+            style: TextStyle(
+              color: Colors.black,
+              letterSpacing: 2.0,
+              fontSize: 24.0,
             ),
           ),
-          bottomNavigationBar: BottomAppBar(
-            color: Colors.transparent,
-            elevation: 0.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      "© QE Sdn Bhd 2020",
-                      style: TextStyle(fontSize: 15, color: Colors.black45),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                )
-              ],
+          SizedBox(height: 20.0),
+          Text(
+            "Temperature: ${serialData.substring(5,9)} °C\n",
+            style: TextStyle(
+              color: Colors.black,
+              letterSpacing: 2.0,
+              fontSize: 24.0,
             ),
-          )),
+          ),
+          SizedBox(height:100.0),
+          Center(
+            child: RaisedButton(
+              onPressed: (){
+                _port.write(Uint8List.fromList("t\r\n".codeUnits));
+              },
+              child: Text(
+                "Activate",
+              ),
+            ),
+          ),
+          Text(
+            "Quantum Technologies",
+            style: TextStyle(
+                color: Colors.black,
+                fontSize:16.0,
+                fontStyle: FontStyle.italic
+            ),
+            textAlign: TextAlign.end,
+          ),
+        ],
+      ),
     );
   }
 }
+

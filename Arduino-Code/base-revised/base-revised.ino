@@ -53,7 +53,7 @@ void getProximityArduino()
     unsigned int proximity = prox.getProximity();
 //    Serial.println(proximity); //debugging for calibration
 
-    if ((proximity > 1000) || (proximity < 300)) //calibrate values after testing
+    if ((proximity > 1000) || (proximity < 99)) //calibrate values after testing
     {
         Serial.println("0"); //if out of optimal range return 0
         count = 0; // if erroneous value set to 0;
@@ -75,7 +75,7 @@ void getTemperatureC()
     }
     else
     {
-        Serial.println(temp + 4, 1); // if temperature inside validated range return temperature to one dp
+        Serial.println(temp + 3, 1); // if temperature inside validated range return temperature to one dp
         count ++; // increment counter for each successful measurement taken
     }
 }
