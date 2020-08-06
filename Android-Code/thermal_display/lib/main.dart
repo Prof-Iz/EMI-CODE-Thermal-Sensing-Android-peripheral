@@ -36,7 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool pendingRequest = false;
   List<double> average = [];
   AudioPlayer feverDetected = AudioPlayer();
-  // AudioCache fever2 = AudioCache();
   String feverSoundURI;
   String noFeverSoundURI;
   FlutterTts readTemperatureResult = FlutterTts();
