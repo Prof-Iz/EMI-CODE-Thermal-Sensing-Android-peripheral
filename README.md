@@ -4,9 +4,11 @@ This is a work in progress!! Some code may have errors and is purely for my own 
 # EMI CODE Thermal Sensing Android peripheral
  Code repository for EMI Project May Sem Y2 Engineering<br>
 
-Repository contains 2 folders
+Repository contains 4 folders
 <ol>Android Code</ol>
 <ol>Arduino Code</ol>
+<ol>CAD Files</ol>
+<ol>PCB Gerber Files</ol>
 
 
 
@@ -25,3 +27,9 @@ The code uses the **Adafruit Library for the Module** https://github.com/adafrui
 
 ## Android Code
 The Android app was built with Flutter and coded in Android Studio. The USB portion of the code is based on a flutter port of **felHR85**'s UsbSerial for Android https://github.com/felHR85/UsbSerial - which was found on pub.dev - provided by **Bessem.dev** https://pub.dev/packages/usb_serial. The example code was tweaked to make the phone connect to the first device input into the serial port and only displays the immediate serial data (*it was a list in the example*)
+
+## 3D PRINTING
+The CAD files of the Casing design can be found in the **CAD FILES** folder. CAD modelling by *Choy Juen Jet: Electrical and Electronics Engineering, **UCSI University***
+
+## PCB Gerber Files
+The files containing the schematic of our project's PCB is located inside the **PCB Gerber Files** folder. The PCB was designed by *Low Wai Sing: Electrical and Electronics Engineering, **UCSI University***
